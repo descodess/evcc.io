@@ -272,19 +272,19 @@
   var $activeClients;
   var $totalClients;
   var $chargePowerUnit;
-  var $unitGreenEnergy;
+  var $greenEnergyUnit;
   function initializeElements() {
     $activeClients = document.querySelector("#telemetry--activeClients");
     $totalClients = document.querySelector("#telemetry--totalClients");
     $chargePowerUnit = document.querySelector("#telemetry--chargePowerUnit");
-    $unitGreenEnergy = document.querySelector("#telemetry--greenEnergyUnit");
+    $greenEnergyUnit = document.querySelector("#telemetry--greenEnergyUnit");
   }
   function render(data) {
+    if (!$chargePowerUnit || !$activeClients) return;
     const telemetryElement = document.querySelector(".telemetry");
     if (telemetryElement) {
       telemetryElement.style.display = "block";
     }
-    data.greenEnergy = 55123456;
     const chargePower = fmtKW(data.chargePower / 1e3);
     const greenEnergy = fmtKWh(data.greenEnergy);
     const greenShare = 100 / data.chargePower * data.greenPower;
@@ -294,21 +294,31 @@
         chargePower.value,
         chargePower.decimals
       );
-      greenEnergyCount = createCounter(
-        "telemetry--greenEnergy",
-        greenEnergy.value,
-        greenEnergy.decimals
-      );
       greenShareCount = createCounter("telemetry--greenShare", greenShare, 1);
+      if ($greenEnergyUnit) {
+        greenEnergyCount = createCounter(
+          "telemetry--greenEnergy",
+          greenEnergy.value,
+          greenEnergy.decimals
+        );
+      }
     } else {
       powerCount.update(chargePower.value);
-      greenEnergyCount.update(greenEnergy.value);
       greenShareCount.update(greenShare);
+      if (greenEnergyCount) {
+        greenEnergyCount.update(greenEnergy.value);
+      }
     }
     $chargePowerUnit.innerText = chargePower.unit;
-    $unitGreenEnergy.innerText = greenEnergy.unit;
-    $activeClients.innerText = data.activeClients;
-    $totalClients.innerText = data.totalClients;
+    const lang = document.documentElement.lang || "de";
+    const fmt = new Intl.NumberFormat(lang);
+    if ($greenEnergyUnit) {
+      $greenEnergyUnit.innerText = greenEnergy.unit;
+    }
+    $activeClients.innerText = fmt.format(data.activeClients);
+    if ($totalClients) {
+      $totalClients.innerText = fmt.format(data.totalClients);
+    }
   }
   function update() {
     fetch("https://api.evcc.io/v1/total").then((response) => response.json()).then(render).catch((err) => {
